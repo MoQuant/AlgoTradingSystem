@@ -18,7 +18,7 @@ class Strats:
         transaction = resp['result']['txid']
         while True:
             closed = await self.api.closed_order(session)
-            volume = vol - float(closed['result']['closed'][transaction]['vol'])
+            volume = vol - float(closed['result']['closed'][transaction]['vol_exec'])
             if volume <= 0.00001:
                 break 
             await asyncio.sleep(0.5)
