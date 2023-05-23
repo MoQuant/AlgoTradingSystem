@@ -23,7 +23,7 @@ class Strategy:
         transaction_id = resp['result']['txid']
         for look in range(stop):
             orders = await self.api.open_orders(session)
-            cleared_volume = orders[transaction_id]['vol_exec']
+            cleared_volume = float(orders['result']['open'][transaction_id]['vol_exec'])
             vol = volume - cleared_volume
             if vol <= 0.00001:
                 break
