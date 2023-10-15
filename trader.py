@@ -1,3 +1,4 @@
+# Holds key and secret
 def auth():
     key = ''
     secret = ''
@@ -14,16 +15,21 @@ import websocket
 import threading
 import numpy as np 
 
+# Timestamp for authenticated functions
 stamp = lambda: str(int(time.time()*1000))
 
+# Timestamp for ping command
 T = lambda: int(time.time())
 
+# Ping message sent to server 
 ping = lambda: json.dumps({'event':'ping','reqid':47})
 
 class Math:
 
+    # Stores prices from feed by ticker
     store_prices = {}
 
+    # Extracts and stores price from socket message
     def ExtractData(self, resp):
         ticker = resp[-1]
         price = float(resp[1][0][0])
@@ -31,6 +37,7 @@ class Math:
             self.store_prices[ticker] = []
         self.store_prices[ticker].append(price)
 
+    # Calculates moving averages for each pair
     def MovingAverage(self, periods=12):
         moving_average = {}
         for ticker in self.store_prices:
@@ -39,7 +46,7 @@ class Math:
         return moving_average
 
 
-
+# Inherits Math class so computations can run
 class Kraken(Math):
 
     def __init__(self, tickers=['XBT/USD','ETH/USD']):
@@ -49,8 +56,10 @@ class Kraken(Math):
         self.rest_url = 'https://api.kraken.com'
         self.ws_url = 'wss://ws.kraken.com'
 
+        # HTTPS session for faster connection
         self.session = requests.Session()
 
+    # SHA512/256 & Base64 authenticated function encryption
     def signature(self, urlpath, data):
         postdata = urllib.parse.urlencode(data)
         encoded = (str(data['nonce']) + postdata).encode()
@@ -59,6 +68,7 @@ class Kraken(Math):
         sigdigest = base64.b64encode(mac.digest())
         return sigdigest.decode()
 
+    # Places trades and fetches balance
     def communicate(self, uri_path, data):
         headers = {}
         headers['API-Key'] = self.key 
@@ -66,6 +76,7 @@ class Kraken(Math):
         req = requests.post((self.rest_url + uri_path), headers=headers, data=data)
         return req.json()
 
+    # Fetches balance from Kraken
     def Balance(self):
         endpoint = '/0/private/Balance'
         msg = {
@@ -73,6 +84,7 @@ class Kraken(Math):
         }
         return self.communicate(endpoint, msg)
 
+    # Places a market buy order
     def MarketBuy(self, pair, volume):
         endpoint = '/0/private/AddOrder'
         msg = {
@@ -84,6 +96,7 @@ class Kraken(Math):
         }    
         return self.communicate(endpoint, msg)
 
+    # Places a market sell order
     def MarketSell(self, pair, volume):
         endpoint = '/0/private/AddOrder'
         msg = {
@@ -95,6 +108,7 @@ class Kraken(Math):
         }    
         return self.communicate(endpoint, msg)
 
+    # WebSocket data feed
     def DataFeed(self):
         self.connection = websocket.create_connection(self.ws_url)
         server_message = {
@@ -126,6 +140,7 @@ datafeed.start()
 
 trade = {tick:'neutral' for tick in kraken.tickers}
 
+# Trading strategy
 while True:
     ma_1 = kraken.MovingAverage(periods=7)
     ma_2 = kraken.MovingAverage(periods=14)
